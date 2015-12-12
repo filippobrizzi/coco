@@ -29,6 +29,14 @@ via Luigi Alamanni 13D, San Giuliano Terme 56010 (PI), Italy
 #include <sstream>
 #include <locale>
 
+#ifdef WIN32
+    #define PATHSEP ';'
+    #define DIRSEP '\\'
+#else
+    #define PATHSEP ':'
+    #define DIRSEP '/'
+#endif
+
 namespace coco
 {
 
@@ -103,7 +111,7 @@ bool CocoLauncher::parseFile(tinyxml2::XMLDocument & doc, bool top)
     const char * erp = getenv("COCOPATH");
     if(erp)
     {
-        split(erp,':',resources_paths_);
+        split(erp,PATHSEP,resources_paths_);
         libraries_paths_ = resources_paths_;
     }
 
