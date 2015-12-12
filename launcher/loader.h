@@ -88,6 +88,7 @@ public:
     void killApp();
     // Used in the editor
 private:
+    void discoverTasks();
     bool parseFile(tinyxml2::XMLDocument & doc, bool top);
     void parseLogConfig(tinyxml2::XMLElement *logconfig);
     void parsePaths(tinyxml2::XMLElement *paths);
@@ -118,7 +119,7 @@ private:
     std::list<std::string> peers_;
 
     std::vector<std::string> resources_paths_;
-    std::string libraries_path_;
+    std::vector<std::string> libraries_paths_;
 
     std::unordered_set<int> assigned_core_id_;
 };

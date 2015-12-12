@@ -25,6 +25,13 @@ via Luigi Alamanni 13D, San Giuliano Terme 56010 (PI), Italy
 */
 
 #include "register.h"
+#include <sys/stat.h>
+
+inline bool fileExist(const char *name)
+{
+  struct stat   buffer;
+  return (stat (name, &buffer) == 0);
+}
 
 // dlopen cross platform
 #ifdef WIN32
@@ -140,28 +147,34 @@ bool ComponentRegistry::addLibrary(const std::string &l, const std::string &path
 {
 	return get().addLibraryImpl(l, path);
 }
+
+
 bool ComponentRegistry::addLibraryImpl(const std::string &lib, const std::string &path)
 {
-    // Concatenate the library name with the path and the extensions
-    std::string library_name;
+	// path + "/" + DLLPREFIX + lib + DLLEXT
+    std::string library_path;
     if (!path.empty())
     {
-        library_name = std::string(path);
-        if (library_name[library_name.size() - 1] != DIRSEP)
-            library_name += (DIRSEP);
-        library_name += DLLPREFIX + lib + DLLEXT;
+        library_path = path;
+        if (library_path[library_path.size() - 1] != DIRSEP)
+            library_path += (DIRSEP);
+        library_path += DLLPREFIX + lib + DLLEXT;
     }
     else
     {
-        library_name = lib;
+        library_path = DLLPREFIX + lib + DLLEXT;
     }
-	if(libs_.find(library_name) != libs_.end())
+
+	if(libs_.find(library_path) != libs_.end())
 		return true; // already loaded
+
+	if(!fileExist(library_path.c_str()))
+		return false;
 	
-	dlhandle dl_handle = dlopen(library_name.c_str(), RTLD_NOW);
+	dlhandle dl_handle = dlopen(library_path.c_str(), RTLD_NOW);
 	if(!dl_handle)
 	{
-		COCO_ERR() << "Error opening library: " << library_name << "\nError: " << dlerror();
+		COCO_ERR() << "Error opening library: " << lib << " as " << library_path << "\nError: " << dlerror();
 		return false;		
 	}
 
@@ -200,7 +213,7 @@ bool ComponentRegistry::addLibraryImpl(const std::string &lib, const std::string
 		COCO_DEBUG("Registry") << "[coco] " << this << " skipping self stored in " << other_registry;
 	}
 	
-	libs_.insert(library_name);
+	libs_.insert(library_path);
 	return true;
 }
 

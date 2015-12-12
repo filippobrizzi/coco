@@ -7,7 +7,7 @@
     </logconfig>
     <resourcespaths>
         <!-- <librariespath>path/to/component/libraries</librariespath> -->
-        <librariespath>/Users/pippo/Libraries/coco/build/lib</librariespath>
+        <!--<librariespath>/Users/pippo/Libraries/coco/build/lib</librariespath>-->
         <!-- <path>path/to/resources</path> -->
     </resourcespaths>
     <activities>
@@ -24,7 +24,7 @@
 					<components>
 						<component>
 							<task>EzTask3</task>
-							<library>/Users/pippo/Libraries/coco/build/lib/libcomponent_1.dylib</library>
+							<library>component_1</library>
 							<attributes>
 							</attributes>
 						</component>

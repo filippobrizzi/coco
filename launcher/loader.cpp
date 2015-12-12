@@ -71,6 +71,19 @@ bool CocoLauncher::createApp(bool profiling)
     return true;
 }
 
+inline void split(const std::string &s, char delim, std::vector<std::string> &elems) {
+    std::stringstream ss(s);
+    std::string item;
+    while (std::getline(ss, item, delim)) {
+        elems.push_back(item);
+    }
+}
+
+void CocoLauncher::discoverTasks()
+{
+}
+
+
 bool CocoLauncher::parseFile(tinyxml2::XMLDocument & doc, bool top)
 {
     using namespace tinyxml2;
@@ -87,8 +100,19 @@ bool CocoLauncher::parseFile(tinyxml2::XMLDocument & doc, bool top)
     // Option3: ignore sub
     parseLogConfig(package->FirstChildElement("logconfig"));
 
+    const char * erp = getenv("COCOPATH");
+    if(erp)
+    {
+        split(erp,':',resources_paths_);
+        libraries_paths_ = resources_paths_;
+    }
+
     // TBD: only libraries_path_ ONCE
     parsePaths(package->FirstChildElement("resourcespaths"));
+
+    // TODO libraries_paths_ use discover
+    discoverTasks();
+    
 
     COCO_DEBUG("Loader") << "Parsing includes";
     XMLElement *includes = package->FirstChildElement("includes");
@@ -213,8 +237,11 @@ void CocoLauncher::parsePaths(tinyxml2::XMLElement *paths)
         return;
 
     XMLElement *libraries_path = paths->FirstChildElement("librariespath");
-    if (libraries_path)
-        libraries_path_ = libraries_path->GetText();
+    while (libraries_path)
+    {
+        libraries_paths_.push_back(libraries_path->GetText());
+        libraries_path  = libraries_path->NextSiblingElement("librariespath");
+    }
 
     XMLElement *path = paths->FirstChildElement("path");
     while (path)
@@ -238,7 +265,7 @@ void CocoLauncher::parseInclude(tinyxml2::XMLElement *include)
             COCO_FATAL() << "Error: " << error << std::endl
                          << "While loading XML sub file: " << path;;
         }
-        parseFile(doc, true);
+        parseFile(doc, false);
     }
 }
 
@@ -398,21 +425,44 @@ void CocoLauncher::parseComponent(tinyxml2::XMLElement *component, Activity *act
     {
         COCO_DEBUG("Loader") << "Component " << task_name <<
                        " not found, trying to load from library";
-        const char* library_name = component->
-                FirstChildElement("library")->GetText();
-        XMLElement *librarypath = component->FirstChildElement("librarypath");
-        if (!ComponentRegistry::addLibrary(library_name,
-                                           !librarypath ?
-                                           libraries_path_ : librarypath->GetText()))
+        auto p = component->FirstChildElement("library");
+        XMLElement *librarypath = component->FirstChildElement("librarypath");    
+        std::string elibrarypath;
+        if(p)
         {
-            COCO_FATAL() << "Failed to load library: " << library_name;
-            return;
-        }
-        t = ComponentRegistry::create(task_name, component_name);
-        if (!t)
-        {
-            COCO_FATAL() << "Failed to create component: " << task_name;
-            return;
+            const char* library_name = p->GetText();
+
+            if(librarypath)
+            {
+                if (!ComponentRegistry::addLibrary(library_name,librarypath->GetText()))
+                {
+                    COCO_FATAL() << "Failed to load library: " << library_name << " with " << librarypath->GetText();
+                    return;
+                }
+            }
+            else
+            {
+                bool done = false;
+                for(auto & s: libraries_paths_)
+                {
+                    if ((done = ComponentRegistry::addLibrary(library_name,s)))
+                    {
+                        break;
+                    }
+                }
+                if(!done)
+                {
+                    COCO_FATAL() << "Failed to load library: " << library_name << " after lookup ";
+                    return;
+                }
+            }
+                
+            t = ComponentRegistry::create(task_name, component_name);
+            if (!t)
+            {
+                COCO_FATAL() << "Failed to create component: " << task_name;
+                return;
+            }
         }
     }
     if (!is_peer)
