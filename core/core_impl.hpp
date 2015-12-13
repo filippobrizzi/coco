@@ -251,7 +251,7 @@ public:
         if (conn)
             conn->addData(input);
         else
-            COCO_ERR() << "Connection " << name << " doesn't exist";
+            COCO_ERR() << "OutputPort::write missing connection " << name << " doesn't exist";
     }
 
 private:

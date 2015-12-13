@@ -28,6 +28,7 @@ via Luigi Alamanni 13D, San Giuliano Terme 56010 (PI), Italy
 #include <cstring>
 #include <sstream>
 #include <locale>
+#include <sys/stat.h>
 
 #ifdef WIN32
     #define PATHSEP ';'
@@ -37,12 +38,48 @@ via Luigi Alamanni 13D, San Giuliano Terme 56010 (PI), Italy
     #define DIRSEP '/'
 #endif
 
+
+inline bool fileExist(const std::string & name)
+{
+  struct stat   buffer;
+  return (stat (name.c_str(), &buffer) == 0);
+}
+
+inline std::string extractFilePath(const std::string & o)
+{
+    auto n = o.rfind(DIRSEP);
+    if(n == std::string::npos)
+    {
+        return std::string();
+    }
+    else
+        return o.substr(0,n+1);
+}
+
+/*
+
+inline std::string absoluteFilePath(const std::string & o)
+{
+    if(o.size() == 0)
+        return o;
+    if(o[0] != DIRSEP)
+    {
+
+    }
+}
+*/
+
 namespace coco
 {
 
 CocoLauncher::CocoLauncher(const std::string &config_file)
     : config_file_(config_file)
 {}
+
+void CocoLauncher::addResourcePath(std::string pa)
+{
+    resources_paths_.push_back(pa);
+}
 
 bool CocoLauncher::createApp(bool profiling)
 {
@@ -57,6 +94,10 @@ bool CocoLauncher::createApp(bool profiling)
 
     ComponentRegistry::enableProfiling(profiling);
 
+    std::string pa = extractFilePath(config_file_);
+    if(pa.empty())
+        pa = "./";
+    addResourcePath(pa);    
     parseFile(doc_,true);
 
     // Removing the peers from the task list
@@ -273,6 +314,9 @@ void CocoLauncher::parseInclude(tinyxml2::XMLElement *include)
             COCO_FATAL() << "Error: " << error << std::endl
                          << "While loading XML sub file: " << path;;
         }
+        std::string pa = extractFilePath(path);
+        if(!pa.empty())
+            resources_paths_.push_back(pa); // TODO uniqueness
         parseFile(doc, false);
     }
 }
@@ -513,11 +557,9 @@ void CocoLauncher::parseAttribute(tinyxml2::XMLElement *attributes, TaskContext 
         if (attr_type)
         {
             std::string type = attr_type;
-            if (type == "file" ||
-                type == "File" ||
-                type == "FILE")
+            if (type == "file" || type == "FILE" || type == "File") // TODO tolower
             {
-                std::string value = checkResource(attr_value);
+                std::string value = lookupResource(attr_value);
                 if (value.empty())
                 {
                     COCO_ERR() << "Cannot find resource: " << attr_value
@@ -535,29 +577,23 @@ void CocoLauncher::parseAttribute(tinyxml2::XMLElement *attributes, TaskContext 
     }
 }
 
-std::string CocoLauncher::checkResource(const std::string &value)
+std::string CocoLauncher::lookupResource(const std::string &value)
 {
-    std::ifstream stream;
-    stream.open(value);
-    if (stream.is_open())
+    /// TODO replace ${...}
+    if(fileExist(value))
     {
         return value;
     }
-    else
+    for (auto &rp : resources_paths_)
     {
-        for (auto &rp : resources_paths_)
-        {
-            if (rp.back() != '/')
-                rp += std::string("/");
-            std::string tmp = rp + value;
-            stream.open(tmp);
-            if (stream.is_open())
-            {
-                return tmp;
-            }
-        }
+        if (rp.back() != DIRSEP)
+            rp += DIRSEP;
+        std::string tmp = rp + value;
+                std::cout << "try lookup " << tmp << std::endl;
+        if(fileExist(tmp.c_str()))
+            return tmp;
     }
-    return "";
+    return std::string();
 }
 
 void CocoLauncher::parsePeers(tinyxml2::XMLElement *peers, TaskContext *t)

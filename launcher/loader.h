@@ -86,9 +86,12 @@ public:
     void createGraph(const std::string& filename) const;
     void waitToComplete();
     void killApp();
-    // Used in the editor
+    
+    std::string lookupResource(const std::string &value);
+
 private:
     void discoverTasks();
+    void addResourcePath(std::string pa);
     bool parseFile(tinyxml2::XMLDocument & doc, bool top);
     void parseLogConfig(tinyxml2::XMLElement *logconfig);
     void parsePaths(tinyxml2::XMLElement *paths);
@@ -99,7 +102,6 @@ private:
     void parseAttribute(tinyxml2::XMLElement *attributes, TaskContext *t);
     void parsePeers(tinyxml2::XMLElement *peers, TaskContext *t);
     void parseConnection(tinyxml2::XMLElement *connection);
-    std::string checkResource(const std::string &value);
     void createGraphPort(coco::PortBase *port, std::ofstream &dot_file,
                          std::unordered_map<std::string, int> &graph_port_nodes,
                          int &node_count) const;
@@ -110,6 +112,7 @@ private:
                                std::unordered_map<std::string, int> &graph_port_nodes) const;
 
     const std::string &config_file_;
+    std::string config_file_path_;
     tinyxml2::XMLDocument doc_;
 
     //std::map<std::string, std::shared_ptr<LComponentBase> > tasks_;
