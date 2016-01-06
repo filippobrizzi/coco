@@ -1,11 +1,14 @@
 /**
-* @file condition_variable.h
-* @brief std::condition_variable implementation for MinGW
-*
-* This file is part of the mingw-w64 runtime package.
-* No warranty is given; refer to the file DISCLAIMER within this package.
-*/
-
+ * Project: CoCo  
+ * Copyright (c) 2015-2016, Scuola Superiore Sant'Anna
+ * 
+ * Authors: Emanuele Ruffaldi <e.ruffaldi@sssup.it>, Filippo Brizzi
+ * 
+ * This file is subject to the terms and conditions defined in
+ * file 'LICENSE.txt', which is part of this source code package.
+ * 
+ * --
+ */
 #ifndef MINGW_CONDITIONAL_VARIABLE_H
 #define MINGW_CONDITIONAL_VARIABLE_H
 #include <atomic>
